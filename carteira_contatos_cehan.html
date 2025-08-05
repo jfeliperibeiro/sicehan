@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Construtoras e Contatos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        h1, h2 {
+            color: #0056b3;
+        }
+
+        .filters-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: flex-end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filters-container label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .filters-container input[type="text"],
+        .filters-container select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+        }
+
+        .filters-container button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-top: 10px; /* Adjust for alignment */
+        }
+
+        .filters-container button#clearFilters {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .filters-container button#clearFilters:hover {
+            background-color: #5a6268;
+        }
+
+        .box-section {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            overflow-x: auto; /* For responsive tables */
+        }
+
+        .coordinator-table, .main-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .coordinator-table th, .coordinator-table td,
+        .main-table th, .main-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        .coordinator-table th, .main-table th {
+            background-color: #f2f2f2;
+            color: #0056b3;
+            font-weight: bold;
+        }
+
+        .company-name {
+            cursor: pointer;
+            color: #007bff;
+            text-decoration: underline;
+        }
+
+        .company-name:hover {
+            color: #0056b3;
+        }
+
+        /* Popup Styles */
+        .popup-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .popup-content {
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+            position: relative;
+        }
+
+        .popup-content h3 {
+            margin-top: 0;
+            color: #0056b3;
+        }
+
+        .popup-content p {
+            word-break: break-all; /* Ensures long emails wrap */
+            margin-bottom: 20px;
+            text-align: left;
+            white-space: pre-wrap; /* Preserves line breaks for emails */
+        }
+
+        .popup-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .popup-buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+        }
+
+        .popup-buttons button#closePopup {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .popup-buttons button#closePopup:hover {
+            background-color: #c82333;
+        }
+
+        .popup-buttons button#copyEmails {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .popup-buttons button#copyEmails:hover {
+            background-color: #218838;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .filters-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filters-container input[type="text"],
+            .filters-container select {
+                width: 100%;
+            }
+
+            .filters-container button {
+                width: 100%;
+                margin-top: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Gerenciador de Construtoras por Box e Coordenador</h1>
+
+    <div class="filters-container">
+        <div class="filter-group">
+            <label for="boxFilter">Filtrar por Box:</label>
+            <select id="boxFilter">
+                <option value="">Todos os Boxes</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="coordinatorFilter">Filtrar por Coordenador:</label>
+            <select id="coordinatorFilter">
+                <option value="">Todos os Coordenadores</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="companyNameFilter">Filtrar por Nome da Construtora:</label>
+            <input type="text" id="companyNameFilter" placeholder="Digite o nome da Construtora...">
+        </div>
+        <button id="clearFilters">Limpar Filtro</button>
+    </div>
+
+    <div id="boxesContainer">
+        <!-- Tables will be dynamically loaded here by JavaScript -->
+    </div>
+
+    <!-- Popup structure -->
+    <div class="popup-overlay" id="emailPopupOverlay">
+        <div class="popup-content">
+            <h3 id="popupCompanyTitle"></h3>
+            <p id="popupEmails"></p>
+            <div class="popup-buttons">
+                <button id="copyEmails">Copiar</button>
+                <button id="closePopup">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dados brutos (SUBSTITUA COM SEUS DADOS COMPLETOS NO FORMATO JSON ESPECIFICADO)
+        // Os nomes dos Boxes (Alpha, Lambda, Omega) serão detectados dinamicamente.
+        const allData = [
+            // Alpha
+            { "box": "Alpha", "coordenador": "Carlos Silva", "Construtora": "Tech Solutions", "contatos": ["contato.techsolutions@email.com", "suporte.techsolutions@email.com", "vendas.techsolutions@email.com"] },
+            { "box": "Alpha", "coordenador": "Carlos Silva", "Construtora": "Innovate Corp", "contatos": ["contato.innovate@email.com", "helpdesk.innovate@email.com", "rh.innovate@email.com"] },
+            { "box": "Alpha", "coordenador": "Carlos Silva", "Construtora": "Global Systems", "contatos": ["info.globalsystems@email.com", "comercial.globalsystems@email.com", "financeiro.globalsystems@email.com"] },
+            { "box": "Alpha", "coordenador": "Carlos Silva", "Construtora": "Future Labs", "contatos": ["contato.futurelabs@email.com", "atendimento.futurelabs@email.com", "parcerias.futurelabs@email.com"] },
+            { "box": "Alpha", "coordenador": "Carlos Silva", "Construtora": "Dynamic Ventures", "contatos": ["contato.dynamic@email.com", "sac.dynamic@email.com", "admin.dynamic@email.com"] },
+            { "box": "Alpha", "coordenador": "Carlos Silva", "Construtora": "Prime Software", "contatos": ["info.primesoftware@email.com", "vendas.primesoftware@email.com", "ti.primesoftware@email.com"] },
+            { "box": "Alpha", "coordenador": "Carlos Silva", "Construtora": "Web Creators", "contatos": ["contato.webcreators@email.com", "marketing.webcreators@email.com", "projetos.webcreators@email.com"] },
+            { "box": "Alpha", "coordenador": "Carlos Silva", "Construtora": "Alpha Analytics", "contatos": ["info.alphaanalytics@email.com", "suporte.alphaanalytics@email.com", "insights.alphaanalytics@email.com"] },
+            { "box": "Alpha", "coordenador": "Carlos Silva", "Construtora": "Apex Innovations", "contatos": ["contato.apex@email.com", "rh.apex@email.com", "comercial.apex@email.com"] },
+            { "box": "Alpha", "coordenador": "Carlos Silva", "Construtora": "Elite Solutions", "contatos": ["info.elite@email.com", "vendas.elite@email.com", "sac.elite@email.com"] },
+            { "box": "Alpha", "coordenador": "Ana Costa", "Construtora": "Mega Consultoria", "contatos": ["contato.megaconsultoria@email.com", "financeiro.megaconsultoria@email.com", "parceria.megaconsultoria@email.com"] },
+            { "box": "Alpha", "coordenador": "Ana Costa", "Construtora": "Visionary Tech", "contatos": ["info.visionarytech@email.com", "suporte.visionarytech@email.com", "vendas.visionarytech@email.com"] },
+            { "box": "Alpha", "coordenador": "Ana Costa", "Construtora": "Progressive IT", "contatos": ["contato.progressiveit@email.com", "helpdesk.progressiveit@email.com", "rh.progressiveit@email.com"] },
+            { "box": "Alpha", "coordenador": "Ana Costa", "Construtora": "NextGen Solutions", "contatos": ["info.nextgensolutions@email.com", "comercial.nextgensolutions@email.com", "financeiro.nextgensolutions@email.com"] },
+            { "box": "Alpha", "coordenador": "Ana Costa", "Construtora": "Synergy Works", "contatos": ["contato.synergyworks@email.com", "atendimento.synergyworks@email.com", "parcerias.synergyworks@email.com"] },
+            { "box": "Alpha", "coordenador": "Ana Costa", "Construtora": "Optimized Systems", "contatos": ["contato.optimizedsystems@email.com", "sac.optimizedsystems@email.com", "admin.optimizedsystems@email.com"] },
+            { "box": "Alpha", "coordenador": "Ana Costa", "Construtora": "Quantum Dynamics", "contatos": ["info.quantumdynamics@email.com", "vendas.quantumdynamics@email.com", "ti.quantumdynamics@email.com"] },
+            { "box": "Alpha", "coordenador": "Ana Costa", "Construtora": "Bright Minds Inc.", "contatos": ["contato.brightminds@email.com", "marketing.brightminds@email.com", "projetos.brightminds@email.com"] },
+            { "box": "Alpha", "coordenador": "Ana Costa", "Construtora": "Global Connect", "contatos": ["info.globalconnect@email.com", "suporte.globalconnect@email.com", "insights.globalconnect@email.com"] },
+            { "box": "Alpha", "coordenador": "Ana Costa", "Construtora": "Precision Data", "contatos": ["contato.precisiondata@email.com", "rh.precisiondata@email.com", "comercial.precisiondata@email.com"] },
+            
+            // Gama
+            { "box": "Gama", "coordenador": "Bruno Oliveira", "Construtora": "Central Services", "contatos": ["contato.centralservices@email.com", "suporte.centralservices@email.com", "vendas.centralservices@email.com"] },
+            { "box": "Gama", "coordenador": "Bruno Oliveira", "Construtora": "Unified Solutions", "contatos": ["contato.unifiedsolutions@email.com", "helpdesk.unifiedsolutions@email.com", "rh.unifiedsolutions@email.com"] },
+            { "box": "Gama", "coordenador": "Bruno Oliveira", "Construtora": "Prime Logistics", "contatos": ["info.primelogistics@email.com", "comercial.primelogistics@email.com", "financeiro.primelogistics@email.com"] },
+            { "box": "Gama", "coordenador": "Bruno Oliveira", "Construtora": "Secure Net", "contatos": ["contato.securenet@email.com", "atendimento.securenet@email.com", "parcerias.securenet@email.com"] },
+            { "box": "Gama", "coordenador": "Bruno Oliveira", "Construtora": "Reliable Tech", "contatos": ["contato.reliabletech@email.com", "sac.reliabletech@email.com", "admin.reliabletech@email.com"] },
+            { "box": "Gama", "coordenador": "Bruno Oliveira", "Construtora": "Advanced Data", "contatos": ["info.advanceddata@email.com", "vendas.advanceddata@email.com", "ti.advanceddata@email.com"] },
+            { "box": "Gama", "coordenador": "Bruno Oliveira", "Construtora": "Digital Bridge", "contatos": ["contato.digitalbridge@email.com", "marketing.digitalbridge@email.com", "projetos.digitalbridge@email.com"] },
+            { "box": "Gama", "coordenador": "Bruno Oliveira", "Construtora": "Smart Innovations", "contatos": ["info.smartinnovations@email.com", "suporte.smartinnovations@email.com", "insights.smartinnovations@email.com"] },
+            { "box": "Gama", "coordenador": "Bruno Oliveira", "Construtora": "Frontier Group", "contatos": ["contato.frontiergroup@email.com", "rh.frontiergroup@email.com", "comercial.frontiergroup@email.com"] },
+            { "box": "Gama", "coordenador": "Bruno Oliveira", "Construtora": "Optimal Efficiency", "contatos": ["info.optimalefficiency@email.com", "vendas.optimalefficiency@email.com", "sac.optimalefficiency@email.com"] },
+                  // Lambda
+            { "box": "Lambda", "coordenador": "Bruno Oliveira", "Construtora": "Central Services", "contatos": ["contato.centralservices@email.com", "suporte.centralservices@email.com", "vendas.centralservices@email.com"] },
+            { "box": "Lambda", "coordenador": "Bruno Oliveira", "Construtora": "Unified Solutions", "contatos": ["contato.unifiedsolutions@email.com", "helpdesk.unifiedsolutions@email.com", "rh.unifiedsolutions@email.com"] },
+            { "box": "Lambda", "coordenador": "Bruno Oliveira", "Construtora": "Prime Logistics", "contatos": ["info.primelogistics@email.com", "comercial.primelogistics@email.com", "financeiro.primelogistics@email.com"] },
+            { "box": "Lambda", "coordenador": "Bruno Oliveira", "Construtora": "Secure Net", "contatos": ["contato.securenet@email.com", "atendimento.securenet@email.com", "parcerias.securenet@email.com"] },
+            { "box": "Lambda", "coordenador": "Bruno Oliveira", "Construtora": "Reliable Tech", "contatos": ["contato.reliabletech@email.com", "sac.reliabletech@email.com", "admin.reliabletech@email.com"] },
+            { "box": "Lambda", "coordenador": "Bruno Oliveira", "Construtora": "Advanced Data", "contatos": ["info.advanceddata@email.com", "vendas.advanceddata@email.com", "ti.advanceddata@email.com"] },
+            { "box": "Lambda", "coordenador": "Bruno Oliveira", "Construtora": "Digital Bridge", "contatos": ["contato.digitalbridge@email.com", "marketing.digitalbridge@email.com", "projetos.digitalbridge@email.com"] },
+            { "box": "Lambda", "coordenador": "Bruno Oliveira", "Construtora": "Smart Innovations", "contatos": ["info.smartinnovations@email.com", "suporte.smartinnovations@email.com", "insights.smartinnovations@email.com"] },
+            { "box": "Lambda", "coordenador": "Bruno Oliveira", "Construtora": "Frontier Group", "contatos": ["contato.frontiergroup@email.com", "rh.frontiergroup@email.com", "comercial.frontiergroup@email.com"] },
+            { "box": "Lambda", "coordenador": "Bruno Oliveira", "Construtora": "Optimal Efficiency", "contatos": ["info.optimalefficiency@email.com", "vendas.optimalefficiency@email.com", "sac.optimalefficiency@email.com"] },
+
+            // Omega
+            { "box": "Omega", "coordenador": "Camila Santos", "Construtora": "Dynamic Marketing", "contatos": ["contato.dynamicmarketing@email.com", "suporte.dynamicmarketing@email.com", "vendas.dynamicmarketing@email.com"] },
+            { "box": "Omega", "coordenador": "Camila Santos", "Construtora": "Creative Solutions", "contatos": ["contato.creative@email.com", "helpdesk.creative@email.com", "rh.creative@email.com"] },
+            { "box": "Omega", "coordenador": "Camila Santos", "Construtora": "Pixel Perfect", "contatos": ["info.pixelperfect@email.com", "comercial.pixelperfect@email.com", "financeiro.pixelperfect@email.com"] },
+            { "box": "Omega", "coordenador": "Camila Santos", "Construtora": "Brand Builders", "contatos": ["contato.brandbuilders@email.com", "atendimento.brandbuilders@email.com", "parcerias.brandbuilders@email.com"] },
+            { "box": "Omega", "coordenador": "Camila Santos", "Construtora": "Media Masters", "contatos": ["contato.mediamasters@email.com", "sac.mediamasters@email.com", "admin.mediamasters@email.com"] },
+            { "box": "Omega", "coordenador": "Daniel Rocha", "Construtora": "Global Payments", "contatos": ["info.globalpayments@email.com", "suporte.globalpayments@email.com", "vendas.globalpayments@email.com"] },
+            { "box": "Omega", "coordenador": "Daniel Rocha", "Construtora": "Finance Hub", "contatos": ["contato.financehub@email.com", "helpdesk.financehub@email.com", "rh.financehub@email.com"] },
+            { "box": "Omega", "coordenador": "Daniel Rocha", "Construtora": "Investment Pros", "contatos": ["info.investmentpros@email.com", "comercial.investmentpros@email.com", "financeiro.investmentpros@email.com"] },
+            { "box": "Omega", "coordenador": "Daniel Rocha", "Construtora": "Asset Management", "contatos": ["contato.assetmanagement@email.com", "atendimento.assetmanagement@email.com", "parcerias.assetmanagement@email.com"] },
+            { "box": "Omega", "coordenador": "Wealth Advisors", "Construtora": "Wealth Advisors", "contatos": ["contato.wealthadvisors@email.com", "sac.wealthadvisors@email.com", "admin.wealthadvisors@email.com"] },
+            { "box": "Omega", "coordenador": "Elisa Fernandes", "Construtora": "Health Connect", "contatos": ["info.healthconnect@email.com", "suporte.healthconnect@email.com", "vendas.healthconnect@email.com"] },
+            { "box": "Omega", "coordenador": "Elisa Fernandes", "Construtora": "Wellness Center", "contatos": ["contato.wellnesscenter@email.com", "helpdesk.wellnesscenter@email.com", "rh.wellnesscenter@email.com"] },
+            { "box": "Omega", "coordenador": "Elisa Fernandes", "Construtora": "Bio Innovations", "contatos": ["info.bioinnovations@email.com", "comercial.bioinnovations@email.com", "financeiro.bioinnovations@email.com"] },
+            { "box": "Omega", "coordenador": "Elisa Fernandes", "Construtora": "MediCare Solutions", "contatos": ["contato.medicaresolutions@email.com", "atendimento.medicaresolutions@email.com", "parcerias.medicaresolutions@email.com"] },
+            { "box": "Omega", "coordenador": "Elisa Fernandes", "Construtora": "Life Science Labs", "contatos": ["contato.lifesciencelabs@email.com", "sac.lifesciencelabs@email.com", "admin.lifesciencelabs@email.com"] }
+        ];
+
+        const boxesContainer = document.getElementById('boxesContainer');
+        const companyNameFilter = document.getElementById('companyNameFilter');
+        const coordinatorFilter = document.getElementById('coordinatorFilter');
+        const boxFilter = document.getElementById('boxFilter');
+        const clearFiltersBtn = document.getElementById('clearFilters');
+        const emailPopupOverlay = document.getElementById('emailPopupOverlay');
+        const popupCompanyTitle = document.getElementById('popupCompanyTitle');
+        const popupEmails = document.getElementById('popupEmails');
+        const closePopupBtn = document.getElementById('closePopup');
+        const copyEmailsBtn = document.getElementById('copyEmails');
+
+        let currentEmailsForCopy = [];
+
+        // Função para popular o select de Boxes de forma dinâmica
+        function populateBoxFilter() {
+            const uniqueBoxes = new Set();
+            allData.forEach(item => {
+                uniqueBoxes.add(item.box);
+            });
+            boxFilter.innerHTML = '<option value="">Todos os Boxes</option>';
+            // Ordena os nomes dos boxes alfabeticamente ou de acordo com sua lógica interna
+            // Para "Alpha", "Lambda", "Omega", uma ordenação alfabética simples funciona bem.
+            const sortedBoxes = Array.from(uniqueBoxes).sort(); 
+            
+            sortedBoxes.forEach(box => {
+                const option = document.createElement('option');
+                option.value = box;
+                option.textContent = box;
+                boxFilter.appendChild(option);
+            });
+        }
+
+        // Função para popular o select de Coordenadores com base nos dados fornecidos
+        function populateCoordinatorFilter(dataToUse) {
+            const uniqueCoordinators = new Set();
+            dataToUse.forEach(item => {
+                uniqueCoordinators.add(item.coordenador);
+            });
+
+            coordinatorFilter.innerHTML = '<option value="">Todos os Coordenadores</option>';
+            Array.from(uniqueCoordinators).sort().forEach(coordinator => {
+                const option = document.createElement('option');
+                option.value = coordinator;
+                option.textContent = coordinator;
+                coordinatorFilter.appendChild(option);
+            });
+        }
+
+        // Função principal para renderizar as tabelas
+        function renderTables(dataToRender) {
+            boxesContainer.innerHTML = ''; // Limpa o conteúdo atual
+
+            // Agrupa os dados por Box
+            const groupedByBox = dataToRender.reduce((acc, item) => {
+                if (!acc[item.box]) {
+                    acc[item.box] = [];
+                }
+                acc[item.box].push(item);
+                return acc;
+            }, {});
+
+            // Ordena os Boxes dinamicamente com base nos nomes existentes no objeto groupedByBox
+            // Para "Alpha", "Lambda", "Omega", uma ordenação alfabética simples funciona bem.
+            const sortedBoxKeys = Object.keys(groupedByBox).sort();
+
+            sortedBoxKeys.forEach(boxName => {
+                const boxSection = document.createElement('div');
+                boxSection.classList.add('box-section');
+                boxSection.innerHTML = `<h2>${boxName}</h2>`;
+
+                const boxData = groupedByBox[boxName];
+
+                // Agrupa os dados do Box por Coordenador
+                const groupedByCoordinator = boxData.reduce((acc, item) => {
+                    if (!acc[item.coordenador]) {
+                        acc[item.coordenador] = [];
+                    }
+                    acc[item.coordenador].push(item);
+                    return acc;
+                }, {});
+
+                // Ordena os Coordenadores alfabeticamente
+                const sortedCoordinatorKeys = Object.keys(groupedByCoordinator).sort();
+
+                sortedCoordinatorKeys.forEach(coordinatorName => {
+                    const coordinatorTable = document.createElement('table');
+                    coordinatorTable.classList.add('coordinator-table');
+                    coordinatorTable.innerHTML = `
+                        <thead>
+                            <tr>
+                                <th colspan="1">Coordenador: ${coordinatorName}</th>
+                            </tr>
+                            <tr>
+                                <th>Construtora</th>
+                                <!-- Coluna 'Contatos' permanece oculta -->
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    `;
+                    const tbody = coordinatorTable.querySelector('tbody');
+
+                    groupedByCoordinator[coordinatorName].forEach(company => {
+                        const row = document.createElement('tr');
+                        // Apenas a célula da Construtora, a célula de contatos foi removida
+                        row.innerHTML = `
+                            <td>
+                                <span class="company-name" data-company-name="${company.Construtora}" data-emails='${JSON.stringify(company.contatos)}'>
+                                    ${company.Construtora}
+                                </span>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                    boxSection.appendChild(coordinatorTable);
+                });
+                boxesContainer.appendChild(boxSection);
+            });
+
+            // Adiciona event listeners para os nomes das Construtoras após renderizar
+            document.querySelectorAll('.company-name').forEach(span => {
+                span.addEventListener('click', openEmailPopup);
+            });
+        }
+
+        // Função para filtrar os dados e re-renderizar as tabelas
+        function applyFilters() {
+            const companyFilterText = companyNameFilter.value.toLowerCase();
+            const selectedCoordinator = coordinatorFilter.value;
+            const selectedBox = boxFilter.value;
+
+            let filteredData = allData.filter(item => {
+                const matchesCompany = item.Construtora.toLowerCase().includes(companyFilterText);
+                const matchesCoordinator = selectedCoordinator === "" || item.coordenador === selectedCoordinator;
+                const matchesBox = selectedBox === "" || item.box === selectedBox;
+                return matchesCompany && matchesCoordinator && matchesBox;
+            });
+
+            renderTables(filteredData);
+        }
+
+        // Função para limpar os filtros
+        function clearFilters() {
+            companyNameFilter.value = '';
+            boxFilter.value = ''; 
+            populateCoordinatorFilter(allData); // Repopula o Coordenador com todos os dados
+            coordinatorFilter.value = ''; 
+            applyFilters(); 
+        }
+
+        // Funções para o Popup
+        function openEmailPopup(event) {
+            const companyName = event.target.dataset.companyName;
+            const emails = JSON.parse(event.target.dataset.emails);
+            
+            popupCompanyTitle.textContent = `Emails de ${companyName}`;
+            popupEmails.innerHTML = emails.join('<br>'); // Exibe cada email em uma nova linha
+            currentEmailsForCopy = emails; // Armazena para o botão de copiar
+            emailPopupOverlay.style.display = 'flex';
+        }
+
+        function closeEmailPopup() {
+            emailPopupOverlay.style.display = 'none';
+            popupCompanyTitle.textContent = '';
+            popupEmails.textContent = '';
+            currentEmailsForCopy = [];
+        }
+
+        async function copyEmailsToClipboard() {
+            try {
+                // Junta os emails com quebra de linha para uma melhor formatação ao colar
+                await navigator.clipboard.writeText(currentEmailsForCopy.join('\n'));
+                alert('Emails copiados para a área de transferência!');
+            } catch (err) {
+                console.error('Falha ao copiar emails: ', err);
+                alert('Erro ao copiar os emails. Por favor, tente novamente ou copie manualmente.');
+            }
+        }
+
+        // Adiciona event listeners para os filtros
+        companyNameFilter.addEventListener('input', applyFilters);
+        coordinatorFilter.addEventListener('change', applyFilters);
+        
+        // Listener para o filtro de Box (filtro dependente)
+        boxFilter.addEventListener('change', () => {
+            const selectedBox = boxFilter.value;
+            if (selectedBox === "") {
+                // Se nenhum box selecionado, mostra todos os coordenadores
+                populateCoordinatorFilter(allData); 
+            } else {
+                // Filtra os dados pelo box selecionado e popula os coordenadores
+                const filteredByBox = allData.filter(item => item.box === selectedBox);
+                populateCoordinatorFilter(filteredByBox);
+            }
+            coordinatorFilter.value = ""; // Reseta a seleção do coordenador ao mudar o box
+            applyFilters(); // Aplica todos os filtros
+        });
+
+        clearFiltersBtn.addEventListener('click', clearFilters);
+
+        // Adiciona event listeners para os botões do popup
+        closePopupBtn.addEventListener('click', closeEmailPopup);
+        copyEmailsBtn.addEventListener('click', copyEmailsToClipboard);
+        // Fechar popup clicando fora do conteúdo
+        emailPopupOverlay.addEventListener('click', (event) => {
+            if (event.target === emailPopupOverlay) {
+                closeEmailPopup();
+            }
+        });
+
+
+        // Inicializa a página
+        document.addEventListener('DOMContentLoaded', () => {
+            populateBoxFilter(); // Primeiro popular os boxes
+            populateCoordinatorFilter(allData); // Depois popular os coordenadores com todos os dados inicialmente
+            renderTables(allData); // Renderiza todas as tabelas na carga inicial
+        });
+    </script>
+</body>
+</html>
